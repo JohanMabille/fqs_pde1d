@@ -47,7 +47,7 @@ double BS_PDE::boundary_right(double t, double x, double v) const {
 }
 
 double BS_PDE::init_cond(double x)  {
-	return option->pay_off->operator()(x);
+	return option->pay_off->operator()(x); //careful to use exp(x) when calling this function
 }
 
 std::vector<double> BS_PDE::init_cond(std::vector<double> X)
@@ -64,6 +64,13 @@ double BS_PDE::standard_dev() {
 	double vol = option->sigma;
 	double maturity = option->T;
 	return vol * sqrt(maturity);
+}
+
+BS_PDE* BS_PDE::vega_pde()
+{
+	VanillaOption* vega_op = option->Option_vega();
+	BS_PDE* vega_pde = new BS_PDE(vega_op, left_boundary_type, right_boundary_type);
+	return vega_pde;
 }
 
 #endif // !1

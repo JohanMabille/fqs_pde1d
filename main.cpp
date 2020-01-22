@@ -15,80 +15,19 @@
 #include "pde_solver.hpp"
 #include "matrix.hpp"
 
-/*
 
-namespace dauphine
-{
-
-    void Dirichlet_boundaries_conditions()
-    {
-        Boundaries_Dirichlet BD(0,200);
-
-        double Payoff_0=BD.get_initial_cond();
-        double Payoff_N=BD.get_final_cond();
-        
-        std::cout << "The lower Dirichlet condition is " <<Payoff_0 <<std::endl;
-        std::cout << "The upper Dirichlet condition is " <<Payoff_N <<std::endl;
-        
-    };
-
-    void Neumann_boundaries_conditions()
-    {
-        Boundaries_Neumann BN(0,100);
-
-        double Payoff_0_df=BN.get_initial_cond();
-        double Payoff_N_df=BN.get_final_cond();
-    
-        std::cout << "The lower Neumann condition is " << Payoff_0_df <<std::endl;
-        std::cout << "The upper Neumann condition is " <<Payoff_N_df <<std::endl;
-        
-}
-
-    }
-
-void Rates_diffusion(std::string Model)
-{
-    if (Model=="Vasicek model"){
-        std::vector<double> V=Vasicek_diffusion(1,365,1000,0.2,0.1,0.012,0.01);
-        print(V);
-    }
-    
-    else if(Model=="Cox Ingersoll Ross model"){
-        std::vector<double> C=Cox_Ingersoll_Ross_diffusion(1,365,1000,0.2,0.1,0.012,0.01);
-        print(C);
-    }
-    
-    else if(Model=="Rendleman Batter model"){
-        std::vector<double> RB=Rendleman_Batter_diffusion(1,365,1000,0.1,0.012,0.01);
-        print(RB);
-    }
-    else{
-        std::cout<<"Please select a rate model ";
-    }
-    
-};
-
-void test(int &i)   // i est une référence du paramètre constant.
-{
-    i = 2;    // Modifie le paramètre passé en référence.
-    return;
-}
-*/
 
 int main(int argc, char* argv[])
 {
-    // insert code here...
-    //dauphine::Dirichlet_boundaries_conditions();
-    //dauphine::Neumann_boundaries_conditions();
-    //Rates_diffusion("Vasicek model");
-	
 	double S0 = 100.0;
 	double K = 100.0;
 	double sigma = 0.15;
 	double maturity = 1;
 	double r = 0.01;
 	double theta = 0.5;
-	std::size_t space_dim = 100;
+    
+    
+    std::size_t space_dim = 100;
 	std::size_t time_dim = 50;
 	std::string l_boundary_type = "D";
 	std::string r_boundary_type = "D";
@@ -99,18 +38,37 @@ int main(int argc, char* argv[])
 	PDE_solve->Crout_Algo_Resolution();
 	double price = PDE_solve->get_price(S0);
 
+    std::vector<double> price_curve = PDE_solve->get_price_curve();
+    std::vector<double> delta_curve = PDE_solve->compute_delta();
+    std::vector<double> gamma_curve = PDE_solve->compute_gamma();
+    std::vector<double> theta_curve = PDE_solve->compute_theta();
+    std::vector<double> vega_curve = PDE_solve->compute_vega();
 
-	std::cout << price << std::endl;
+    std::cout << "the price vector of the option at t=0 is :" << std::endl;
+    for (auto it = price_curve.begin(); it != price_curve.end(); it++){
+        std::cout << *it << std::endl;
+    }
 
+    std::cout << "the delta vector of the option at t=0 is :" << std::endl;
+    for (auto it = delta_curve.begin(); it != delta_curve.end(); it++) {
+        std::cout << *it << std::endl;
+    }
 
-    //Discretization Dis(S_max, number_path_mash,S_min,maturity,time_path);
-    //std::vector<double> V=Dis.get_diffusion_time();
-    //Solve::matrix_pde_case1 M(10, 10, 0.1,0.05, 0.5, 5, 200, 0);
-    //std::vector<double> V=M.Final_solve(10, 10, 0.1, 0.5, 5, 200, 0,0.5);
-    //dauphine::matrix m(3,3);
-    //std::vector<double> v(3);
-    //std::vector<double> result=m.produit_mat_vect(m,v);
-    //print(V);
+    std::cout << "the gamma vector of the option at t=0 is :" << std::endl;
+    for (auto it = gamma_curve.begin(); it != gamma_curve.end(); it++) {
+        std::cout << *it << std::endl;
+    }
+
+    std::cout << "the theta vector of the option at t=0 is :" << std::endl;
+    for (auto it = theta_curve.begin(); it != theta_curve.end(); it++) {
+        std::cout << *it << std::endl;
+    }
+
+    std::cout << "the vega vector of the option at t=0 is :" << std::endl;
+    for (auto it = vega_curve.begin(); it != vega_curve.end(); it++) {
+        std::cout << *it << std::endl;
+    }
+
     
     return 0;
     

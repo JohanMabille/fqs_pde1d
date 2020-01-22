@@ -52,6 +52,8 @@ class BS_PDE : public basicPDE {
 		double init_cond(double x);
 		std::vector<double> init_cond(std::vector<double> X);
 		double standard_dev() ;
+
+		BS_PDE* vega_pde();
 		
 		/*
 		double diff_coeff2(double t, double x, double v) const = 0;

@@ -37,8 +37,17 @@ namespace Solve
 		dauphine::matrix transition_matrix(const double& temp);
 		void Crout_Algo_Resolution();
 		std::vector<double> LU_compute( dauphine::matrix& L, dauphine::matrix& U, const std::vector<double>& b);
+		std::vector<double> get_option_payoff(); //returns x_values now
         std::vector<double> get_price_curve();
 		double get_price(const double& S);
+		double compute_delta(const double& S);
+		std::vector<double> compute_delta();
+		double compute_gamma(const double& S);
+		std::vector<double> compute_gamma();
+		double compute_theta(const double& S);
+		std::vector<double> compute_theta();
+		std::vector<double> compute_vega();
+		double compute_vega(const double& S);
 
 		
 		//void calculate step_sizes, and Smaxx, Smin
@@ -62,8 +71,12 @@ namespace Solve
 		std::size_t time_dim;
 		std::string l;
 		std::string r;
+		std::vector<double> option_payoff;
 		std::vector<double> old_result;
 		std::vector<double> new_result;
+		bool resolved;
+		std::vector<double> vega;
+
 
 
     };
