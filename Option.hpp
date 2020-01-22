@@ -10,15 +10,16 @@ class VanillaOption {
 	public:
 		PayOff* pay_off;
 
-		double K;
-		double r;
-		double T;
-		double sigma;
+		const double K = 0.0;
+		const double r = 0.0;
+		const double T = 0.0;
+		const double sigma = 0.0;
 
 
 		VanillaOption();
 		VanillaOption(double _K, double _r, double _T,
 			double _sigma, PayOff* _pay_off);
+		VanillaOption* Option_vega();
 };
 
 #endif
