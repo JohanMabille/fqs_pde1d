@@ -66,6 +66,7 @@ namespace Solve
 		double dx;
 		std::size_t space_dim;
 		std::vector<double> x_values;
+		std::vector<double> S_values;
 		double dt;
 		double maturity;
 		std::size_t time_dim;
