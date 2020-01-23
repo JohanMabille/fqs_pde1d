@@ -25,31 +25,21 @@ namespace Solve
 		r = pde->get_right_boundary_type();
 		l = pde->get_left_boundary_type();
 		resolved = false;
+
+		x_values.resize(space_dim - 1, 0.0);
+		S_values.resize(space_dim - 1, 0.0);
+		double val = x_min;
+		//filling x_values ;
+		for (auto x = x_values.begin(); x != x_values.end(); ++x)
+		{
+			*x = val + dx;
+			val = *x;
+		}
+		//filling S_values
+		std::transform(x_values.begin(), x_values.end(), S_values.begin(),
+			[](double d) { return std::exp(d); });
+
 	}
-    
-	/*
-	std::size_t  matrix_pde_case1::number_path_underlying()
-
-	{
-		return m_underlying_nb_dimension;
-	}
-
-	std::size_t  matrix_pde_case1::m_maturity()
-
-	   {
-		   return m_maturity_nb_dimension;
-	   }
-	*/
-
-        
-    //if (side==true) A mettre dans un autre code
-    //{
-       // double temp=theta*maturity/time_path;
-    //}
-    //else
-    //{
-      //  double temp=-(1-theta)*maturity/time_path;
-    //}
     
     std::vector<double> matrix_pde_case1::forward_coefficient(const double& temp)
     {
@@ -110,20 +100,13 @@ namespace Solve
 		return c_coef;
     }
     
-	void matrix_pde_case1::set_initial_conditions()
+	void matrix_pde_case1::set_initial_conditions() //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!change this
 	{
-		x_values.resize(space_dim - 1, 0.0);
+		
 		option_payoff.resize(space_dim - 1, 0.0);
-		double val = x_min;
-
-		//filling x_values ;
-		for (auto x = x_values.begin(); x != x_values.end(); ++x)
-		{
-			*x = val + dx;
-			val = *x;
-		}
 		//filling  and initial condition in result vector
-		option_payoff = pde->init_cond(x_values);
+		
+		option_payoff = pde->init_cond(S_values);
 	}
 
 	std::vector<double> matrix_pde_case1::boundary_increment(const double& t)
@@ -186,6 +169,7 @@ namespace Solve
 
 		//setting initial conditions
 		set_initial_conditions();
+
 
 		//creation of the left and right transition matrices
 		dauphine::matrix M_lhs = transition_matrix(temp_lhs);
@@ -251,7 +235,7 @@ namespace Solve
 
 	std::vector<double> matrix_pde_case1::get_option_payoff()
 	{
-		return x_values;
+		return option_payoff;
 	}
 
 	std::vector<double> matrix_pde_case1::get_price_curve()
@@ -283,13 +267,20 @@ namespace Solve
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
 		}
-		double x = log(S);
 		int i = 0;
-		while (x_values[i] < x)
+		while (S_values[i] < S)
 		{
 			++i;
 		}
-		return (new_result[i + 1] - new_result[i - 1]) / (2 * dx);
+		if (i == 0) {
+			return (new_result[1] - new_result[0]) / (S_values[1] - S_values[0]);
+		}
+		else if (i == space_dim - 2) {
+			return (new_result[space_dim - 2] - new_result[space_dim - 3]) / (S_values[space_dim - 2] - S_values[space_dim - 3]);
+		}
+		else {
+			return (new_result[i + 1] - new_result[i - 1]) / (S_values[i + 1] - S_values[i - 1]);
+		}
 	}
 
 	std::vector<double> matrix_pde_case1::compute_delta()
@@ -299,12 +290,11 @@ namespace Solve
 		}
 
 		std::vector<double> delta(space_dim - 1);
-		delta.push_back((new_result[1] - new_result[0]) / dx);
-		for (size_t i = 1; i < space_dim - 2;++i) 
+		for (size_t i = 0; i < space_dim - 1;++i) 
 		{
-			delta.push_back(compute_delta(exp(x_values[i])));
+			delta.push_back(compute_delta(S_values[i]));
 		}
-		delta.push_back((new_result[space_dim - 2] - new_result[space_dim - 3]) / dx);
+		
 		
 		return delta;
 	}
@@ -314,13 +304,25 @@ namespace Solve
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
 		}
-		double x = log(S);
 		int i = 0;
-		while (x_values[i] < x)
+		while (S_values[i] < S)
 		{
 			++i;
 		}
-		return (new_result[i + 1] - 2 * new_result[i] + new_result[i - 1]) / (dx * dx);
+		//Discretization of second derivative here is different because S-grid is non uniform.
+		double ds_2;
+		if (i == 0) {
+			ds_2 = (S_values[2] - S_values[1]) * (S_values[1] - S_values[0]) * (S_values[2] - S_values[0]);
+			return 2 / ds_2 * ((new_result[2] - new_result[1]) * (S_values[1] - S_values[0]) - (new_result[1] - new_result[0]) * (S_values[2] - S_values[1]));
+		}
+		else if (i == space_dim - 2) {
+			ds_2 = (S_values[space_dim - 2] - S_values[space_dim - 3]) * (S_values[space_dim -3] - S_values[space_dim - 4]) * (S_values[space_dim - 2] - S_values[space_dim - 4]);
+			return 2 / ds_2 * ((new_result[space_dim - 2] - new_result[space_dim - 3]) * (S_values[space_dim - 3] - S_values[space_dim - 4]) - (new_result[space_dim - 3] - new_result[space_dim - 4]) * (S_values[space_dim - 2] - S_values[space_dim - 3]));
+		}
+		else {
+			ds_2 = (S_values[i + 1] - S_values[i]) * (S_values[i] - S_values[i - 1]) * (S_values[i + 1] - S_values[i - 1]);
+			return 2 / ds_2 * ((new_result[i + 1] - new_result[i]) * (S_values[i] - S_values[i - 1]) - (new_result[i] - new_result[i - 1]) * (S_values[i + 1] - S_values[i]));
+		}
 	}
 
 	std::vector<double> matrix_pde_case1::compute_gamma()
@@ -330,13 +332,10 @@ namespace Solve
 		}
 
 		std::vector<double> gamma(space_dim - 1);
-		gamma.push_back((new_result[2] - 2 * new_result[1] + new_result[0]) / (dx * dx));
-		for (size_t i = 1; i < space_dim - 2;++i)
+		for (size_t i = 0; i < space_dim - 1; ++i)
 		{
-			gamma.push_back(compute_gamma(exp(x_values[i])));
+			gamma.push_back(compute_gamma(S_values[i]));
 		}
-		gamma.push_back((new_result[space_dim-2] - 2 * new_result[space_dim - 3] + new_result[space_dim - 4]) / (dx * dx));
-
 		return gamma;
 	}
 
@@ -351,7 +350,7 @@ namespace Solve
 		{
 			++i;
 		}
-		return (new_result[i] - old_result[i]) / dx;
+		return (old_result[i] - new_result[i]) / dt * 365; //theta per 1 day change
 	}
 
 	std::vector<double> matrix_pde_case1::compute_theta()
@@ -363,7 +362,7 @@ namespace Solve
 		std::vector<double> theta(space_dim - 1);
 		for (size_t i = 0; i < space_dim - 1; ++i)
 		{
-			theta.push_back(compute_theta(exp(x_values[i])));
+			theta.push_back(compute_theta(S_values[i]));
 		}
 		return theta;
 	}
@@ -378,6 +377,7 @@ namespace Solve
 		matrix_pde_case1* vega_solve = new Solve::matrix_pde_case1(vega_pde, theta, space_dim, time_dim, S0, maturity);
 		vega_solve->Crout_Algo_Resolution();
 		std::vector<double> vega_price = vega_solve->get_price_curve();
+		vega.resize(space_dim - 1);
 		for (size_t i = 0; i < space_dim - 1; ++i) {
 			vega.push_back(vega_price[i] - new_result[i]);
 		}
@@ -386,7 +386,10 @@ namespace Solve
 
 	double matrix_pde_case1::compute_vega(const double& S)
 	{
-		compute_vega();
+		if (vega.size() == 0){
+			vega = compute_vega();
+		}
+		
 		double x = log(S);
 		int i = 0;
 		while (x_values[i] < x)

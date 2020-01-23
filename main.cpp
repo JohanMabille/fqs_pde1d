@@ -38,6 +38,9 @@ int main(int argc, char* argv[])
 	PDE_solve->Crout_Algo_Resolution();
 	double price = PDE_solve->get_price(S0);
 
+    
+    ///*
+    
     std::vector<double> price_curve = PDE_solve->get_price_curve();
     std::vector<double> delta_curve = PDE_solve->compute_delta();
     std::vector<double> gamma_curve = PDE_solve->compute_gamma();
@@ -45,7 +48,7 @@ int main(int argc, char* argv[])
     std::vector<double> vega_curve = PDE_solve->compute_vega();
 
     std::cout << "the price vector of the option at t=0 is :" << std::endl;
-    for (auto it = price_curve.begin(); it != price_curve.end(); it++){
+    for (auto it = price_curve.begin(); it != price_curve.end(); it++) {
         std::cout << *it << std::endl;
     }
 
@@ -68,7 +71,12 @@ int main(int argc, char* argv[])
     for (auto it = vega_curve.begin(); it != vega_curve.end(); it++) {
         std::cout << *it << std::endl;
     }
-
+    //*/
+    
+    std::vector<double> tst = PDE_solve->boundary_increment(1.0);
+    for (auto it = tst.begin(); it != tst.end(); it++) {
+        std::cout << *it << std::endl;
+    }
     
     return 0;
     
