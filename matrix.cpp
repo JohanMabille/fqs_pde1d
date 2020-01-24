@@ -41,23 +41,8 @@ namespace dauphine
     {
         return  m_data[i*m_nb_rows+j];
     }
-    matrix& matrix::operator+=(const matrix& rhs)
-    {
-        for(std::size_t i=0;i<m_nb_rows;++i)
-        {
-            for(std::size_t j=0;j<m_nb_cols;++j)
-            {
-                m_data[i * m_nb_cols + j] = rhs.m_data[i * m_nb_cols + j];
-            }
-        }
-        return *this;
-    }
-    matrix operator+(const matrix& lhs, const matrix& rhs)
-    {
-        matrix tmp(lhs);
-        tmp += rhs;
-        return tmp;
-    }
+
+
 
     matrix operator+(double lhs, matrix& m)
     {
@@ -71,7 +56,7 @@ namespace dauphine
         return m;
     }
 
-    std::vector<double> matrix::produit_mat_vect(std::vector<double>& v)
+    std::vector<double> matrix::produit_mat_vect(const std::vector<double>& v)
     {
     if (v.size()==m_nb_cols)
         {

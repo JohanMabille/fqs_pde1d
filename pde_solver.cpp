@@ -238,6 +238,11 @@ namespace Solve
 		return option_payoff;
 	}
 
+	std::vector<double> matrix_pde_case1::get_S_grid()
+	{
+		return S_values;
+	}
+
 	std::vector<double> matrix_pde_case1::get_price_curve()
 	{
 		//test if resolution of the PDE has been done
@@ -289,7 +294,7 @@ namespace Solve
 			Crout_Algo_Resolution();
 		}
 
-		std::vector<double> delta(space_dim - 1);
+		std::vector<double> delta;
 		for (size_t i = 0; i < space_dim - 1;++i) 
 		{
 			delta.push_back(compute_delta(S_values[i]));
@@ -331,7 +336,7 @@ namespace Solve
 			Crout_Algo_Resolution();
 		}
 
-		std::vector<double> gamma(space_dim - 1);
+		std::vector<double> gamma;
 		for (size_t i = 0; i < space_dim - 1; ++i)
 		{
 			gamma.push_back(compute_gamma(S_values[i]));
@@ -350,7 +355,7 @@ namespace Solve
 		{
 			++i;
 		}
-		return (old_result[i] - new_result[i]) / dt * 365; //theta per 1 day change
+		return (old_result[i] - new_result[i]) * dt * 365; //theta per 1 day change
 	}
 
 	std::vector<double> matrix_pde_case1::compute_theta()
@@ -359,7 +364,7 @@ namespace Solve
 			Crout_Algo_Resolution();
 		}
 
-		std::vector<double> theta(space_dim - 1);
+		std::vector<double> theta;
 		for (size_t i = 0; i < space_dim - 1; ++i)
 		{
 			theta.push_back(compute_theta(S_values[i]));
@@ -372,14 +377,17 @@ namespace Solve
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
 		}
-
-		BS_PDE* vega_pde = pde->vega_pde();
-		matrix_pde_case1* vega_solve = new Solve::matrix_pde_case1(vega_pde, theta, space_dim, time_dim, S0, maturity);
-		vega_solve->Crout_Algo_Resolution();
-		std::vector<double> vega_price = vega_solve->get_price_curve();
 		vega.resize(space_dim - 1);
+		BS_PDE* vega_pde1 = pde->vega_pde1();
+		BS_PDE* vega_pde2 = pde->vega_pde2();
+		matrix_pde_case1* vega_solve1 = new Solve::matrix_pde_case1(vega_pde1, theta, space_dim, time_dim, S0, maturity);
+		matrix_pde_case1* vega_solve2 = new Solve::matrix_pde_case1(vega_pde2, theta, space_dim, time_dim, S0, maturity);
+		vega_solve1->Crout_Algo_Resolution();
+		vega_solve2->Crout_Algo_Resolution();
+		std::vector<double> vega_price1 = vega_solve1->get_price_curve();
+		std::vector<double> vega_price2 = vega_solve2->get_price_curve();
 		for (size_t i = 0; i < space_dim - 1; ++i) {
-			vega.push_back(vega_price[i] - new_result[i]);
+			vega[i] = ((vega_price1[i] - vega_price2[i]) / 2);
 		}
 		return vega;
 	}

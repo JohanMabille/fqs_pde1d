@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 //#include "Rates.hpp"
 #include "Payoff.h"
 #include "pde.hpp"
@@ -38,46 +39,43 @@ int main(int argc, char* argv[])
 	PDE_solve->Crout_Algo_Resolution();
 	double price = PDE_solve->get_price(S0);
 
-    
-    ///*
-    
+    std::ofstream outFile;
+    outFile.open("PDE_Solver_Outputs.csv");
+    if (!outFile.is_open())
+    {
+        std::cerr << "Failed to open output file" << std::endl;
+        return -1;
+    }
+
+    std::vector<double> S_grid = PDE_solve->get_S_grid();
     std::vector<double> price_curve = PDE_solve->get_price_curve();
     std::vector<double> delta_curve = PDE_solve->compute_delta();
     std::vector<double> gamma_curve = PDE_solve->compute_gamma();
     std::vector<double> theta_curve = PDE_solve->compute_theta();
     std::vector<double> vega_curve = PDE_solve->compute_vega();
+    std::vector<double> payoff_curve = PDE_solve->get_option_payoff();
 
-    std::cout << "the price vector of the option at t=0 is :" << std::endl;
-    for (auto it = price_curve.begin(); it != price_curve.end(); it++) {
-        std::cout << *it << std::endl;
+   
+    outFile << "Spot,Option Price,Delta,Gamma,Theta,Vega" << std::endl;
+    for (size_t i = 0; i < space_dim - 1; ++i) 
+    {
+        outFile << S_grid[i] << ","
+            << price_curve[i] << "," 
+            << delta_curve[i] << ","
+            <<gamma_curve[i] << ","
+            <<theta_curve[i] << ","
+            <<vega_curve[i]<< ","
+            <<payoff_curve[i]
+            << std::endl;
     }
 
-    std::cout << "the delta vector of the option at t=0 is :" << std::endl;
-    for (auto it = delta_curve.begin(); it != delta_curve.end(); it++) {
-        std::cout << *it << std::endl;
-    }
-
-    std::cout << "the gamma vector of the option at t=0 is :" << std::endl;
-    for (auto it = gamma_curve.begin(); it != gamma_curve.end(); it++) {
-        std::cout << *it << std::endl;
-    }
-
-    std::cout << "the theta vector of the option at t=0 is :" << std::endl;
-    for (auto it = theta_curve.begin(); it != theta_curve.end(); it++) {
-        std::cout << *it << std::endl;
-    }
-
-    std::cout << "the vega vector of the option at t=0 is :" << std::endl;
-    for (auto it = vega_curve.begin(); it != vega_curve.end(); it++) {
-        std::cout << *it << std::endl;
-    }
-    //*/
+    outFile << delta_curve[80] << std::endl;
     
-    std::vector<double> tst = PDE_solve->boundary_increment(1.0);
-    for (auto it = tst.begin(); it != tst.end(); it++) {
-        std::cout << *it << std::endl;
-    }
+
     
+
+    outFile.close();
+
     return 0;
     
 }

@@ -30,11 +30,11 @@ double BS_PDE::zero_coeff(double t, double x, double v) const {
 
 //maybe delete this
 double BS_PDE::source_coeff(double t, double x, double v) const {
-	return 0.0;
+	return 0.00001;
 }
 
 double BS_PDE::boundary_left(double t, double x, double v) const {
-	return 0.0;
+	return 0.00001;
 }
 
 double BS_PDE::boundary_right(double t, double x, double v) const {
@@ -66,9 +66,16 @@ double BS_PDE::standard_dev() {
 	return vol * sqrt(maturity);
 }
 
-BS_PDE* BS_PDE::vega_pde()
+BS_PDE* BS_PDE::vega_pde1()
 {
-	VanillaOption* vega_op = option->Option_vega();
+	VanillaOption* vega_op = option->Option_vega(0.01);
+	BS_PDE* vega_pde = new BS_PDE(vega_op, left_boundary_type, right_boundary_type);
+	return vega_pde;
+}
+
+BS_PDE* BS_PDE::vega_pde2()
+{
+	VanillaOption* vega_op = option->Option_vega(-0.01);
 	BS_PDE* vega_pde = new BS_PDE(vega_op, left_boundary_type, right_boundary_type);
 	return vega_pde;
 }
