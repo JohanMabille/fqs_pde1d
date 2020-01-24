@@ -37,7 +37,8 @@ namespace Solve
 		dauphine::matrix transition_matrix(const double& temp);
 		void Crout_Algo_Resolution();
 		std::vector<double> LU_compute( dauphine::matrix& L, dauphine::matrix& U, const std::vector<double>& b);
-		std::vector<double> get_option_payoff(); //returns x_values now
+		std::vector<double> get_option_payoff();
+		std::vector<double> get_S_grid();
         std::vector<double> get_price_curve();
 		double get_price(const double& S);
 		double compute_delta(const double& S);
