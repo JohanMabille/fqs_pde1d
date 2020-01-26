@@ -5,18 +5,55 @@
 namespace Solve
 {
 	Exo_Solver::Exo_Solver(Exo_PDE* _pde, double _theta, std::size_t _space_dim, std::size_t _time_dim, double _S0, double _maturity)
-		:pde(_pde), theta(_theta), space_dim(_space_dim), time_dim(_time_dim), S0(_S0), maturity(_maturity) {
+		:BS_Solver(_pde, _theta, _space_dim, _time_dim, _S0, _maturity), pde(_pde), theta(_theta), space_dim(_space_dim),
+		time_dim(_time_dim), S0(_S0), maturity(_maturity), dt(0.0), dx(0.0), x_min(0.0), x_max(0.0),resolved(false) {
 		calculate_parameters();
+	}
+	
+	void Exo_Solver::calculate_parameters() {
+		double stdv = pde->standard_dev();
+
+		x_max = log(S0) + 5 * stdv;
+		x_min = log(S0) - 5 * stdv;
+		dx = 10 * stdv / static_cast<double>(space_dim);
+		dt = maturity / static_cast<double>(time_dim);
+		r = pde->get_right_boundary_type();
+		l = pde->get_left_boundary_type();
+		resolved = false;
+
+		x_values.resize(space_dim - 1, 0.0);
+		S_values.resize(space_dim - 1, 0.0);
+		double val = x_min;
+		//filling x_values ;
+		for (auto x = x_values.begin(); x != x_values.end(); ++x)
+		{
+			*x = val + dx;
+			val = *x;
+		}
+		//filling S_values
+		std::transform(x_values.begin(), x_values.end(), S_values.begin(),
+			[](double d) { return exp(d); });
+
+	}
+
+	void Exo_Solver::set_initial_conditions()
+	{
+
+		option_payoff.resize(space_dim - 1, 0.0);
+		//filling  and initial condition in result vector
+
+		option_payoff = pde->init_cond(S_values);
 	}
 
 	std::vector<double> Exo_Solver::forward_coefficient(const double& temp, const size_t& i)
 	{
+		Exo_Solver::calculate_parameters();
 		double dx_2 = pow(dx, 2.0);
 		std::vector<double>a_coef(space_dim - 2);
 		std::vector<double>&& diff_coeff = pde->diff_coeff();
 		std::vector<double>&& conv_coeff = pde->conv_coeff(i);
 
-		for (size_t i = 0; it != space_dim - 2; ++i)
+		for (size_t i = 0; i != space_dim - 2; ++i)
 		{
 			a_coef[i] = temp * (conv_coeff[i] / (2 * dx) - diff_coeff[i] / dx_2);
 		}
@@ -103,19 +140,20 @@ namespace Solve
 
 	void Exo_Solver::Crout_Algo_Resolution()
 	{
+		Exo_Solver::calculate_parameters();
+
 		double temp_lhs = theta * dt;
 		double temp_rhs = -(1 - theta) * dt;
 
 		//setting initial conditions
-		set_initial_conditions();
+		Exo_Solver::set_initial_conditions();
 
-		dauphine::matrix&& M_lhs(space_dim - 1, space_dim - 1);
-		dauphine::matrix&& M_rhs(space_dim - 1, space_dim - 1);
+		dauphine::matrix M_lhs(space_dim - 1, space_dim - 1);
+		dauphine::matrix M_rhs(space_dim - 1, space_dim - 1);
 		dauphine::matrix L(space_dim - 1, space_dim - 1);
 		dauphine::matrix U(space_dim - 1, space_dim - 1);
 		std::vector<double> v(space_dim - 1);
 		std::vector<double> tmp(space_dim - 1);
-		double t;
 
 		new_result = option_payoff;
 
@@ -130,7 +168,7 @@ namespace Solve
 			U(0, 0) = 1.0;
 			U(0, 1) = M_lhs(0, 1) / L(0, 0);
 
-			for (std::size_t i = 1; i != space_dim - 2; ++i)
+			for (std::size_t i = 1; i != time_dim ; ++i)
 			{
 				L(i, i - 1) = M_lhs(i, i - 1);
 				L(i, i) = M_lhs(i, i) - L(i, i - 1) * U(i - 1, i);
@@ -144,50 +182,150 @@ namespace Solve
 
 
 			old_result = new_result;
-			t = maturity - i * dt; // think about && rvalue lvalue;
-			tmp = boundary_increment(t);
+			tmp = boundary_increment(time_dim - i);
 			v = M_rhs.produit_mat_vect(old_result);
 			std::transform(tmp.begin(), tmp.end(), v.begin(), v.begin(), std::plus<double>());
 
 			new_result = LU_compute(L, U, v);
 		}
 		resolved = true;
+		return;
 	}
 
-	std::vector<double> BS_Solver::compute_vega()
+	std::vector<double> Exo_Solver::get_price_curve()
 	{
+		//test if resolution of the PDE has been done
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
 		}
-		vega.resize(space_dim - 1);
-		BS_PDE* vega_pde1 = pde->vega_pde(0.01);
-		BS_PDE* vega_pde2 = pde->vega_pde(-0.01);
-		BS_Solver* vega_solve1 = new Solve::BS_Solver(vega_pde1, theta, space_dim, time_dim, S0, maturity);
-		BS_Solver* vega_solve2 = new Solve::BS_Solver(vega_pde2, theta, space_dim, time_dim, S0, maturity);
-		vega_solve1->Crout_Algo_Resolution();
-		vega_solve2->Crout_Algo_Resolution();
-		std::vector<double> vega_price1 = vega_solve1->get_price_curve();
-		std::vector<double> vega_price2 = vega_solve2->get_price_curve();
-		for (size_t i = 0; i < space_dim - 1; ++i) {
-			vega[i] = ((vega_price1[i] - vega_price2[i]) / 2);
-		}
-		return vega;
+		return new_result;
 	}
 
-	double BS_Solver::compute_vega(const double& S)
+	double Exo_Solver::get_price(const double& S)
 	{
-		if (vega.size() == 0) {
-			vega = compute_vega();
+		//add test if resolution of the PDE has been done
+		if (resolved == 0) {
+			Crout_Algo_Resolution();
 		}
-
 		double x = log(S);
 		int i = 0;
 		while (x_values[i] < x)
 		{
 			++i;
 		}
-		return vega[i];
+		return new_result[i];
 	}
+
+	double Exo_Solver::compute_delta(const double& S)
+	{
+		if (resolved == 0) {
+			Crout_Algo_Resolution();
+		}
+		int i = 0;
+		while (S_values[i] < S)
+		{
+			++i;
+		}
+		if (i == 0) {
+			return (new_result[1] - new_result[0]) / (S_values[1] - S_values[0]);
+		}
+		else if (i == space_dim - 2) {
+			return (new_result[space_dim - 2] - new_result[space_dim - 3]) / (S_values[space_dim - 2] - S_values[space_dim - 3]);
+		}
+		else {
+			return (new_result[i + 1] - new_result[i - 1]) / (S_values[i + 1] - S_values[i - 1]);
+		}
+	}
+
+	std::vector<double> Exo_Solver::compute_delta()
+	{
+		if (resolved == 0) {
+			Crout_Algo_Resolution();
+		}
+
+		std::vector<double> delta;
+		for (size_t i = 0; i < space_dim - 1;++i)
+		{
+			delta.push_back(compute_delta(S_values[i]));
+		}
+
+
+		return delta;
+	}
+
+	double Exo_Solver::compute_gamma(const double& S)
+	{
+		if (resolved == 0) {
+			Crout_Algo_Resolution();
+		}
+		int i = 0;
+		while (S_values[i] < S)
+		{
+			++i;
+		}
+		//Discretization of second derivative here is different because S-grid is non uniform.
+		double ds_2;
+		if (i == 0) {
+			ds_2 = (S_values[2] - S_values[1]) * (S_values[1] - S_values[0]) * (S_values[2] - S_values[0]);
+			return 2 / ds_2 * ((new_result[2] - new_result[1]) * (S_values[1] - S_values[0]) - (new_result[1] - new_result[0]) * (S_values[2] - S_values[1]));
+		}
+		else if (i == space_dim - 2) {
+			ds_2 = (S_values[space_dim - 2] - S_values[space_dim - 3]) * (S_values[space_dim - 3] - S_values[space_dim - 4]) * (S_values[space_dim - 2] - S_values[space_dim - 4]);
+			return 2 / ds_2 * ((new_result[space_dim - 2] - new_result[space_dim - 3]) * (S_values[space_dim - 3] - S_values[space_dim - 4]) - (new_result[space_dim - 3] - new_result[space_dim - 4]) * (S_values[space_dim - 2] - S_values[space_dim - 3]));
+		}
+		else {
+			ds_2 = (S_values[i + 1] - S_values[i]) * (S_values[i] - S_values[i - 1]) * (S_values[i + 1] - S_values[i - 1]);
+			return 2 / ds_2 * ((new_result[i + 1] - new_result[i]) * (S_values[i] - S_values[i - 1]) - (new_result[i] - new_result[i - 1]) * (S_values[i + 1] - S_values[i]));
+		}
+	}
+
+	std::vector<double> Exo_Solver::compute_gamma()
+	{
+		if (resolved == 0) {
+			Crout_Algo_Resolution();
+		}
+
+		std::vector<double> gamma;
+		for (size_t i = 0; i < space_dim - 1; ++i)
+		{
+			gamma.push_back(compute_gamma(S_values[i]));
+		}
+		return gamma;
+	}
+
+	double Exo_Solver::compute_theta(const double& S)
+	{
+		if (resolved == 0) {
+			Crout_Algo_Resolution();
+		}
+		double x = log(S);
+		int i = 0;
+		while (x_values[i] < x)
+		{
+			++i;
+		}
+		return (old_result[i] - new_result[i]) * dt * 365; //theta per 1 day change
+	}
+
+	std::vector<double> Exo_Solver::compute_theta()
+	{
+		if (resolved == 0) {
+			Crout_Algo_Resolution();
+		}
+
+		std::vector<double> theta;
+		for (size_t i = 0; i < space_dim - 1; ++i)
+		{
+			theta.push_back(compute_theta(S_values[i]));
+		}
+		return theta;
+	}
+
+	std::vector<double> Exo_Solver::get_option_payoff()
+	{
+		return option_payoff;
+	}
+
 
 
 

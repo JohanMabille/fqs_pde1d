@@ -10,15 +10,10 @@
 
 namespace Solve
 {
-	/*
-		BS_Solver::BS_Solver() {
-		pde = NULL;
-	}
-	*/
 
     BS_Solver::BS_Solver(BS_PDE* _pde, double _theta, std::size_t _space_dim, std::size_t _time_dim, double _S0, double _maturity)
     :pde(_pde), theta(_theta), space_dim(_space_dim), time_dim(_time_dim), S0(_S0), maturity(_maturity) {
-		calculate_parameters();
+		BS_Solver::calculate_parameters();
 	}
  
 	void BS_Solver::calculate_parameters() {
@@ -43,7 +38,7 @@ namespace Solve
 		}
 		//filling S_values
 		std::transform(x_values.begin(), x_values.end(), S_values.begin(),
-			[](double d) { return std::exp(d); });
+			[](double d) { return exp(d); });
 
 	}
     
@@ -106,7 +101,7 @@ namespace Solve
 		return c_coef;
     }
     
-	void BS_Solver::set_initial_conditions() //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!change this
+	void BS_Solver::set_initial_conditions() 
 	{
 		
 		option_payoff.resize(space_dim - 1, 0.0);

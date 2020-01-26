@@ -18,7 +18,8 @@ VanillaOption* VanillaOption::Option_vega(const double& dv)
 
 ExoticOption::ExoticOption(const double& _K, const std::vector<double>& _r, const double& _T,
 	const std::vector<double>& _sigma, PayOff* _pay_off) :
-	K(_K), R(_r), T(_T), Sigma(_sigma), pay_off(_pay_off) {}
+	VanillaOption(_K, 0.0, _T, 0.0, _pay_off), Sigma(_sigma), R(_r), pay_off(_pay_off), K(_K),
+	T(_T){}
 
 std::vector<double> ExoticOption::get_yield_curve(){
 	return R;
@@ -27,9 +28,6 @@ std::vector<double> ExoticOption::get_yield_curve(){
 std::vector<double> ExoticOption::get_vol_TS(){
 	return Sigma;
 }
-
-
-
 
 
 

@@ -26,28 +26,27 @@ namespace Solve
     class BS_Solver
     {
 	public:
-		//BS_Solver();
 		BS_Solver(BS_PDE* _pde, double _theta, std::size_t _space_dim, std::size_t _time_dim, double _S0, double _maturity);
-		void calculate_parameters();
-		void set_initial_conditions();
+		virtual void calculate_parameters();
+		virtual void set_initial_conditions();
 		virtual std::vector<double> boundary_increment(const double& t);
 
         virtual std::vector<double> forward_coefficient(const double& temp, const size_t& i = 0);
         virtual std::vector<double> present_coefficient(const double& temp, const size_t& i = 0);
         virtual std::vector<double> backward_coefficient(const double& temp, const size_t& i = 0);
-		dauphine::matrix transition_matrix(const double& temp, const size_t& i = 0);
+		virtual dauphine::matrix transition_matrix(const double& temp, const size_t& i = 0);
 		virtual void Crout_Algo_Resolution();
-		std::vector<double> LU_compute( dauphine::matrix& L, dauphine::matrix& U, const std::vector<double>& b);
-		std::vector<double> get_option_payoff();
-		std::vector<double> get_S_grid();
-        std::vector<double> get_price_curve();
-		double get_price(const double& S);
-		double compute_delta(const double& S);
-		std::vector<double> compute_delta();
-		double compute_gamma(const double& S);
-		std::vector<double> compute_gamma();
-		double compute_theta(const double& S);
-		std::vector<double> compute_theta();
+		virtual std::vector<double> LU_compute( dauphine::matrix& L, dauphine::matrix& U, const std::vector<double>& b);
+		virtual std::vector<double> get_option_payoff();
+		virtual std::vector<double> get_S_grid();
+        virtual std::vector<double> get_price_curve();
+		virtual double get_price(const double& S);
+		virtual double compute_delta(const double& S);
+		virtual std::vector<double> compute_delta();
+		virtual double compute_gamma(const double& S);
+		virtual std::vector<double> compute_gamma();
+		virtual double compute_theta(const double& S);
+		virtual std::vector<double> compute_theta();
 		std::vector<double> compute_vega();
 		double compute_vega(const double& S);
 
@@ -77,11 +76,23 @@ namespace Solve
 	{
 	public:
 		Exo_Solver(Exo_PDE* _pde, double _theta, std::size_t _space_dim, std::size_t _time_dim, double _S0, double _maturity);
+		void calculate_parameters();
+		void set_initial_conditions();
 		std::vector<double> forward_coefficient(const double& temp, const size_t& i);
 		std::vector<double> present_coefficient(const double& temp, const size_t& i);
 		std::vector<double> backward_coefficient(const double& temp, const size_t& i);
 		std::vector<double> boundary_increment(const size_t& i);
 		void Crout_Algo_Resolution();
+
+		virtual std::vector<double> get_price_curve();
+		virtual double get_price(const double& S);
+		virtual double compute_delta(const double& S);
+		virtual std::vector<double> compute_delta();
+		virtual double compute_gamma(const double& S);
+		virtual std::vector<double> compute_gamma();
+		virtual double compute_theta(const double& S);
+		virtual std::vector<double> compute_theta();
+		virtual std::vector<double> get_option_payoff();
 	private:
 		Exo_PDE* pde;
 		double theta;
@@ -101,7 +112,7 @@ namespace Solve
 		std::vector<double> old_result;
 		std::vector<double> new_result;
 		bool resolved;
-		//std::vector<double> vega;
+		std::vector<double> vega;
 	};
 
 
