@@ -4,40 +4,41 @@
 #include "pde.hpp"
 #include <math.h>
 
-BS_PDE::BS_PDE(VanillaOption* _option, const std::string& _left_boundary_type , const std::string& _right_boundary_type)
+BS_PDE::BS_PDE() {
+	option = NULL;
+	right_boundary_type = "D";
+	left_boundary_type = "D";
+};
+
+BS_PDE::BS_PDE(VanillaOption* _option, const std::string& _left_boundary_type, const std::string& _right_boundary_type)
 	: option(_option), left_boundary_type(_left_boundary_type), right_boundary_type(_right_boundary_type) {}
 
 std::string BS_PDE::get_right_boundary_type() const {
-	return right_boundary_type ;
+	return right_boundary_type;
 }
 
 std::string BS_PDE::get_left_boundary_type() const {
-	return left_boundary_type ;
+	return left_boundary_type;
 }
 
-double BS_PDE::diff_coeff(double t, double x, double v) const {
+double BS_PDE::diff_coeff() const {
 	double vol = option->sigma;
-	return 0.5 * vol * vol ;  
+	return 0.5 * vol * vol;
 }
 
-double BS_PDE::conv_coeff(double t, double x, double v) const {
-	return (option->r) - diff_coeff(t, x, v) ;
+double BS_PDE::conv_coeff() const {
+	return (option->r) - diff_coeff();
 }
 
-double BS_PDE::zero_coeff(double t, double x, double v) const {
-	return (option->r) ;
+double BS_PDE::zero_coeff() const {
+	return (option->r);
 }
 
-//maybe delete this
-double BS_PDE::source_coeff(double t, double x, double v) const {
+double BS_PDE::boundary_left() const {
 	return 0.00001;
 }
 
-double BS_PDE::boundary_left(double t, double x, double v) const {
-	return 0.00001;
-}
-
-double BS_PDE::boundary_right(double t, double x, double v) const {
+double BS_PDE::boundary_right(const double& t, const double& x) const {
 	double res = 1.0;
 
 	if (left_boundary_type.compare("D") == 0) {
@@ -46,11 +47,11 @@ double BS_PDE::boundary_right(double t, double x, double v) const {
 	return res;
 }
 
-double BS_PDE::init_cond(double x)  {
+double BS_PDE::init_cond(const double& x) {
 	return option->pay_off->operator()(x); //careful to use exp(x) when calling this function
 }
 
-std::vector<double> BS_PDE::init_cond(std::vector<double> X)
+std::vector<double> BS_PDE::init_cond(const std::vector<double>& X)
 {
 	size_t l = X.size();
 	std::vector<double> res(l);
@@ -66,18 +67,58 @@ double BS_PDE::standard_dev() {
 	return vol * sqrt(maturity);
 }
 
-BS_PDE* BS_PDE::vega_pde1()
+BS_PDE* BS_PDE::vega_pde(const double& d)
 {
-	VanillaOption* vega_op = option->Option_vega(0.01);
+	VanillaOption* vega_op = option->Option_vega(d);
 	BS_PDE* vega_pde = new BS_PDE(vega_op, left_boundary_type, right_boundary_type);
 	return vega_pde;
 }
 
-BS_PDE* BS_PDE::vega_pde2()
+Exo_PDE::Exo_PDE(ExoticOption* _option, const std::string& _left_boundary_type , const std::string& _right_boundary_type)
+	: option(_option), left_boundary_type(_left_boundary_type), right_boundary_type(_right_boundary_type) {}
+
+std::vector<double> Exo_PDE::diff_coeff() 
 {
-	VanillaOption* vega_op = option->Option_vega(-0.01);
-	BS_PDE* vega_pde = new BS_PDE(vega_op, left_boundary_type, right_boundary_type);
-	return vega_pde;
+	std::vector<double>&& vol = option->get_vol_TS();
+	std::transform(vol.begin(), vol.end(), vol.begin(), 
+		[](double d) { return 0.5 * d * d; });
+	return vol;
 }
+
+std::vector<double> Exo_PDE::conv_coeff(const size_t & t)
+{
+	std::vector<double>&& R = option->get_yield_curve();
+	std::vector<double>&& diff = diff_coeff();
+	double r = R[t];
+	std::transform(diff.begin(), diff.end(), diff.begin(),
+		[r](double d) { return r - d;});
+
+	return diff;
+}
+
+std::vector<double> Exo_PDE::zero_coeff()
+{
+	std::vector<double>&& R = option->get_yield_curve();
+	return R;
+}
+
+double Exo_PDE::standard_dev()
+{
+	std::vector<double>&& vol = option->get_vol_TS();
+	double maturity = option->T;
+	return vol[(vol.size() + 1 )/2] * sqrt(maturity); //Volatility for S0
+}
+
+double Exo_PDE::boundary_right(const size_t& i, const double& dt, const double& x) const
+{
+	double res = 1.0;
+	std::vector<double>&& R = option->get_yield_curve();
+	if (left_boundary_type.compare("D") == 0) {
+		res = (x - (option->K) * exp(-(R[i]) * ((option->T) - i * dt))); //careful to use exp(x) when calling this function
+	}
+	return res;
+}
+
+
 
 #endif // !1

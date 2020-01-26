@@ -10,12 +10,18 @@
 
 namespace Solve
 {
-    matrix_pde_case1::matrix_pde_case1(BS_PDE* _pde, double _theta, std::size_t _space_dim, std::size_t _time_dim, double _S0, double _maturity)
+	/*
+		BS_Solver::BS_Solver() {
+		pde = NULL;
+	}
+	*/
+
+    BS_Solver::BS_Solver(BS_PDE* _pde, double _theta, std::size_t _space_dim, std::size_t _time_dim, double _S0, double _maturity)
     :pde(_pde), theta(_theta), space_dim(_space_dim), time_dim(_time_dim), S0(_S0), maturity(_maturity) {
 		calculate_parameters();
 	}
  
-	void matrix_pde_case1::calculate_parameters() {
+	void BS_Solver::calculate_parameters() {
 		double stdv = pde->standard_dev();
 
 		x_max = log(S0) + 5 * stdv;
@@ -41,7 +47,7 @@ namespace Solve
 
 	}
     
-    std::vector<double> matrix_pde_case1::forward_coefficient(const double& temp)
+    std::vector<double> BS_Solver::forward_coefficient(const double& temp, const size_t& i)
     {
         double dx_2=pow(dx, 2.0);
         std::vector<double>a_coef(space_dim-2);
@@ -53,7 +59,7 @@ namespace Solve
 		return a_coef;
 	}
     
-    std::vector<double> matrix_pde_case1::present_coefficient(const double& temp)
+    std::vector<double> BS_Solver::present_coefficient(const double& temp, const size_t& i)
     {
         double dx_2=pow(dx,2.0);
         std::vector<double>b_coef(space_dim-1);
@@ -88,7 +94,7 @@ namespace Solve
 		return b_coef;
 	}
     
-    std::vector<double> matrix_pde_case1::backward_coefficient(const double& temp)
+    std::vector<double> BS_Solver::backward_coefficient(const double& temp, const size_t& i)
     {
 		double dx_2 = pow(dx, 2.0);
 		std::vector<double> c_coef(space_dim - 2);
@@ -100,7 +106,7 @@ namespace Solve
 		return c_coef;
     }
     
-	void matrix_pde_case1::set_initial_conditions() //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!change this
+	void BS_Solver::set_initial_conditions() //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!change this
 	{
 		
 		option_payoff.resize(space_dim - 1, 0.0);
@@ -109,14 +115,14 @@ namespace Solve
 		option_payoff = pde->init_cond(S_values);
 	}
 
-	std::vector<double> matrix_pde_case1::boundary_increment(const double& t)
+	std::vector<double> BS_Solver::boundary_increment(const double& t)
 	{
 		double dx_2 = pow(dx, 2.0);
 		std::vector<double> boundary_effect;
 		boundary_effect.resize(space_dim -1, 0.0);
 		//auto it1 = boundary_effect.begin(); //check this with prof
 		//auto it2 = boundary_effect.back();
-		double left_b = pde->boundary_left(t);
+		double left_b = pde->boundary_left();
 		double right_b = pde->boundary_right(t, exp(x_max));
 
 		if (l.compare("D") == 0)
@@ -139,11 +145,11 @@ namespace Solve
 		return boundary_effect;
 	}
     
-	dauphine::matrix matrix_pde_case1::transition_matrix(const double& temp)
+	dauphine::matrix BS_Solver::transition_matrix(const double& temp, const size_t& i)
 	{
-		std::vector<double> a = forward_coefficient(temp);
-		std::vector<double> b = present_coefficient(temp);
-		std::vector<double> c = backward_coefficient(temp);
+		std::vector<double>&& a = forward_coefficient(temp, i);
+		std::vector<double>&& b = present_coefficient(temp, i);
+		std::vector<double>&& c = backward_coefficient(temp, i);
 		dauphine::matrix m(space_dim - 1, space_dim - 1);
 
 		m(0, 0) = b[0];
@@ -162,7 +168,7 @@ namespace Solve
 		return m ;
 	}
 
-	void matrix_pde_case1::Crout_Algo_Resolution()
+	void BS_Solver::Crout_Algo_Resolution()
 	{
 		double temp_lhs = theta * dt;
 		double temp_rhs = - (1- theta) * dt;
@@ -172,8 +178,8 @@ namespace Solve
 
 
 		//creation of the left and right transition matrices
-		dauphine::matrix M_lhs = transition_matrix(temp_lhs);
-		dauphine::matrix M_rhs = transition_matrix(temp_rhs);
+		dauphine::matrix&& M_lhs = transition_matrix(temp_lhs);
+		dauphine::matrix&& M_rhs = transition_matrix(temp_rhs);
 
 		// L - U decomposition of the left matrix for the Crout Algorithm 
 		dauphine::matrix L(space_dim -1, space_dim - 1);
@@ -212,7 +218,7 @@ namespace Solve
 		resolved = true;
 	}
 
-	std::vector<double> matrix_pde_case1::LU_compute(dauphine::matrix& L, dauphine::matrix& U, const std::vector<double>& b)
+	std::vector<double> BS_Solver::LU_compute(dauphine::matrix& L, dauphine::matrix& U, const std::vector<double>& b)
 	{
 		std::vector<double> x(b.size(),0.0);
 		std::vector<double> z(b.size(),0.0);
@@ -233,17 +239,17 @@ namespace Solve
 		return x;
 	}
 
-	std::vector<double> matrix_pde_case1::get_option_payoff()
+	std::vector<double> BS_Solver::get_option_payoff()
 	{
 		return option_payoff;
 	}
 
-	std::vector<double> matrix_pde_case1::get_S_grid()
+	std::vector<double> BS_Solver::get_S_grid()
 	{
 		return S_values;
 	}
 
-	std::vector<double> matrix_pde_case1::get_price_curve()
+	std::vector<double> BS_Solver::get_price_curve()
 	{
 		//test if resolution of the PDE has been done
 		if (resolved == 0) {
@@ -252,7 +258,7 @@ namespace Solve
 		return new_result;
 	}
 
-	double matrix_pde_case1::get_price(const double& S)
+	double BS_Solver::get_price(const double& S)
 	{
 		//add test if resolution of the PDE has been done
 		if (resolved == 0) {
@@ -267,7 +273,7 @@ namespace Solve
 		return new_result[i];
 	}
 
-	double matrix_pde_case1::compute_delta(const double& S)
+	double BS_Solver::compute_delta(const double& S)
 	{
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
@@ -288,7 +294,7 @@ namespace Solve
 		}
 	}
 
-	std::vector<double> matrix_pde_case1::compute_delta()
+	std::vector<double> BS_Solver::compute_delta()
 	{
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
@@ -304,7 +310,7 @@ namespace Solve
 		return delta;
 	}
 
-	double matrix_pde_case1::compute_gamma(const double& S)
+	double BS_Solver::compute_gamma(const double& S)
 	{
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
@@ -330,7 +336,7 @@ namespace Solve
 		}
 	}
 
-	std::vector<double> matrix_pde_case1::compute_gamma()
+	std::vector<double> BS_Solver::compute_gamma()
 	{
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
@@ -344,7 +350,7 @@ namespace Solve
 		return gamma;
 	}
 
-	double matrix_pde_case1::compute_theta(const double& S)
+	double BS_Solver::compute_theta(const double& S)
 	{
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
@@ -358,7 +364,7 @@ namespace Solve
 		return (old_result[i] - new_result[i]) * dt * 365; //theta per 1 day change
 	}
 
-	std::vector<double> matrix_pde_case1::compute_theta()
+	std::vector<double> BS_Solver::compute_theta()
 	{
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
@@ -372,16 +378,16 @@ namespace Solve
 		return theta;
 	}
 	
-	std::vector<double> matrix_pde_case1::compute_vega()
+	std::vector<double> BS_Solver::compute_vega()
 	{
 		if (resolved == 0) {
 			Crout_Algo_Resolution();
 		}
 		vega.resize(space_dim - 1);
-		BS_PDE* vega_pde1 = pde->vega_pde1();
-		BS_PDE* vega_pde2 = pde->vega_pde2();
-		matrix_pde_case1* vega_solve1 = new Solve::matrix_pde_case1(vega_pde1, theta, space_dim, time_dim, S0, maturity);
-		matrix_pde_case1* vega_solve2 = new Solve::matrix_pde_case1(vega_pde2, theta, space_dim, time_dim, S0, maturity);
+		BS_PDE* vega_pde1 = pde->vega_pde(0.01);
+		BS_PDE* vega_pde2 = pde->vega_pde(-0.01);
+		BS_Solver* vega_solve1 = new Solve::BS_Solver(vega_pde1, theta, space_dim, time_dim, S0, maturity);
+		BS_Solver* vega_solve2 = new Solve::BS_Solver(vega_pde2, theta, space_dim, time_dim, S0, maturity);
 		vega_solve1->Crout_Algo_Resolution();
 		vega_solve2->Crout_Algo_Resolution();
 		std::vector<double> vega_price1 = vega_solve1->get_price_curve();
@@ -392,7 +398,7 @@ namespace Solve
 		return vega;
 	}
 
-	double matrix_pde_case1::compute_vega(const double& S)
+	double BS_Solver::compute_vega(const double& S)
 	{
 		if (vega.size() == 0){
 			vega = compute_vega();
