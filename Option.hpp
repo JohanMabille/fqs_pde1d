@@ -18,7 +18,7 @@ class VanillaOption {
 		const double sigma = 0.0;
 
 
-
+		
 		VanillaOption(const double& _K, const double& _r, const double& _T,
 			const double& _sigma, PayOff* _pay_off);
 		VanillaOption* Option_vega( const double& dv);
@@ -26,7 +26,7 @@ class VanillaOption {
 
 // We wanted to use inheritance here too but had some issues with the need to define a default constructor, non access to attributes.
 
-class ExoticOption {
+class ExoticOption : public VanillaOption {
 	private:
 		std::vector<double> R;
 		std::vector<double> Sigma;

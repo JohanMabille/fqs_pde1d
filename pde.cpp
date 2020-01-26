@@ -4,12 +4,6 @@
 #include "pde.hpp"
 #include <math.h>
 
-BS_PDE::BS_PDE() {
-	option = NULL;
-	right_boundary_type = "D";
-	left_boundary_type = "D";
-};
-
 BS_PDE::BS_PDE(VanillaOption* _option, const std::string& _left_boundary_type, const std::string& _right_boundary_type)
 	: option(_option), left_boundary_type(_left_boundary_type), right_boundary_type(_right_boundary_type) {}
 
@@ -75,7 +69,7 @@ BS_PDE* BS_PDE::vega_pde(const double& d)
 }
 
 Exo_PDE::Exo_PDE(ExoticOption* _option, const std::string& _left_boundary_type , const std::string& _right_boundary_type)
-	: option(_option), left_boundary_type(_left_boundary_type), right_boundary_type(_right_boundary_type) {}
+	: BS_PDE(_option,_left_boundary_type, _right_boundary_type), option(_option), left_boundary_type(_left_boundary_type), right_boundary_type(_right_boundary_type) {}
 
 std::vector<double> Exo_PDE::diff_coeff() 
 {

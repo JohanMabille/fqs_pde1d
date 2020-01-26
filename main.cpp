@@ -23,9 +23,10 @@ int main(int argc, char* argv[])
 	double S0 = 100.0;
 	double K = 100.0;
 	double sigma = 0.15;
-	double maturity = 1;
+	double maturity = 1.0;
 	double r = 0.01;
 	double theta = 0.5;
+    //Vector Sigma and R have to be of dimension space_dim - 1, and time_dim respectively
     std::vector<double> Sigma(99, 0.15);
     std::vector<double> R(50, 0.01);
     
@@ -33,15 +34,19 @@ int main(int argc, char* argv[])
 	std::size_t time_dim = 50;
 	std::string l_boundary_type = "D";
 	std::string r_boundary_type = "D";
+
+    //After a long debug session, we are able to create an output for the exo solver, but the results are false, for some reason,
+    //The S Grid is fixed at 100, with a little bit of time we might have been able to correct this.
+    //
 	PayOff* pay_off_call = new PayOffCall(K);
-	ExoticOption* call_option = new ExoticOption(K, R, maturity, Sigma, pay_off_call);
-	Exo_PDE* bs_pde = new Exo_PDE(call_option, l_boundary_type, r_boundary_type);
-	Solve::Exo_Solver* PDE_solve = new Solve::Exo_Solver(bs_pde, theta, space_dim, time_dim, S0, maturity);
+	VanillaOption* call_option = new VanillaOption(K, r, maturity, sigma, pay_off_call);
+	BS_PDE* bs_pde = new BS_PDE(call_option, l_boundary_type, r_boundary_type);
+	Solve::BS_Solver* PDE_solve = new Solve::BS_Solver(bs_pde, theta, space_dim, time_dim, S0, maturity);
 	PDE_solve->Crout_Algo_Resolution();
-	double price = PDE_solve->get_price(S0);
+	//double price = PDE_solve->get_price(S0);
 
     std::ofstream outFile;
-    outFile.open("Exo_PDE_Solver_Outputs.csv");
+    outFile.open("PDE_Solver_Outputs.csv");
     if (!outFile.is_open())
     {
         std::cerr << "Failed to open output file" << std::endl;
@@ -53,11 +58,12 @@ int main(int argc, char* argv[])
     std::vector<double> delta_curve = PDE_solve->compute_delta();
     std::vector<double> gamma_curve = PDE_solve->compute_gamma();
     std::vector<double> theta_curve = PDE_solve->compute_theta();
-    //std::vector<double> vega_curve = PDE_solve->compute_vega();
+    std::vector<double> vega_curve = PDE_solve->compute_vega();
     std::vector<double> payoff_curve = PDE_solve->get_option_payoff();
 
+    //didnt have time to implement vega computation for exotic option, only works for classic Black Scholes PDE
    
-    outFile << "Spot,Option Price,Delta,Gamma,Theta,Vega" << std::endl;
+    outFile << "Spot,Option Price,Delta,Gamma,Theta,Vega,payoff" << std::endl;
     for (size_t i = 0; i < space_dim - 1; ++i) 
     {
         outFile << S_grid[i] << ","
@@ -65,7 +71,7 @@ int main(int argc, char* argv[])
             << delta_curve[i] << ","
             <<gamma_curve[i] << ","
             <<theta_curve[i] << ","
-            //<<vega_curve[i]<< ","
+            <<vega_curve[i]<< ","
             <<payoff_curve[i]
             << std::endl;
     }
@@ -74,6 +80,8 @@ int main(int argc, char* argv[])
 
     outFile.close();
 
+    std::cout << "Output CSV file has been created with all the pricing results, please check your build folder" << std::endl;
+    std::cout << "please make sure to have english version of excel when opening file, otherwise change the ',' to ';' in outfile" << std::endl;
     return 0;
     
 }

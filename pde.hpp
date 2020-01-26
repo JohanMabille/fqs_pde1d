@@ -34,7 +34,6 @@ private:
 	std::string left_boundary_type;
 
 public:
-	BS_PDE();
 	BS_PDE(VanillaOption* _option, const std::string& _left_boundary_type = "D", const std::string& _right_boundary_type = "D");
 
 	std::string get_right_boundary_type() const;
@@ -69,10 +68,8 @@ public:
 	std::vector<double> zero_coeff();
 	double standard_dev();
 
-	//R vector will need to be inversed most likely !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	double boundary_right(const size_t& i, const double& dt = 0.0, const double& x = 0.0) const;
 
-	BS_PDE* vega_pde();
 
 
 };
