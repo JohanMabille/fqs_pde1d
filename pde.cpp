@@ -81,6 +81,10 @@ std::vector<double> Exo_PDE::diff_coeff()
 
 std::vector<double> Exo_PDE::conv_coeff(const size_t & t)
 {
+        // Implementation: why using rvalue reference here?
+        // std::move would be better and would avoid potential
+        // dangling reference if you decide to change the return type
+        // of get_yield_curve
 	std::vector<double>&& R = option->get_yield_curve();
 	std::vector<double>&& diff = diff_coeff();
 	double r = R[t];
@@ -92,6 +96,8 @@ std::vector<double> Exo_PDE::conv_coeff(const size_t & t)
 
 std::vector<double> Exo_PDE::zero_coeff()
 {
+        // return option->get_yield_curve() would allow
+        // return value optimization from the compiler
 	std::vector<double>&& R = option->get_yield_curve();
 	return R;
 }

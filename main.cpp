@@ -15,7 +15,7 @@
 #include "pde.hpp"
 #include "pde_solver.hpp"
 #include "matrix.hpp"
-
+#include "closed_form.hpp"
 
 
 int main(int argc, char* argv[])
@@ -24,14 +24,14 @@ int main(int argc, char* argv[])
 	double K = 100.0;
 	double sigma = 0.15;
 	double maturity = 1.0;
-	double r = 0.01;
+	double r = 0.00;
 	double theta = 0.5;
     //Vector Sigma and R have to be of dimension space_dim - 1, and time_dim respectively
     std::vector<double> Sigma(99, 0.15);
     std::vector<double> R(50, 0.01);
     
-    std::size_t space_dim = 100;
-	std::size_t time_dim = 50;
+    std::size_t space_dim = 500;
+	std::size_t time_dim = 365;
 	std::string l_boundary_type = "D";
 	std::string r_boundary_type = "D";
 
@@ -80,6 +80,22 @@ int main(int argc, char* argv[])
 
     outFile.close();
 
+    for(size_t i = 0; i < S_grid.size(); ++i)
+    {
+        double theo = dauphine::bs_price(S_grid[i] * std::exp(r * maturity),
+                                         S_grid[i],
+                                         sigma,
+                                         maturity,
+                                         true) * std::exp(-r * maturity);
+
+        std::cout << "i = " << i << ", ";
+        std::cout << "S = " << S_grid[i] << ", ";
+        std::cout << "price = " << price_curve[i] << ", ";
+        std::cout << "theo = " << theo << ", ";
+        std::cout << "diff = " << theo - price_curve[i] << std::endl;
+    }
+
+    // What is Excel? ;)
     std::cout << "Output CSV file has been created with all the pricing results, please check your build folder" << std::endl;
     std::cout << "please make sure to have english version of excel when opening file, otherwise change the ',' to ';' in outfile" << std::endl;
     return 0;

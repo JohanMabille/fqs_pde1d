@@ -19,6 +19,7 @@ namespace Solve
 	void BS_Solver::calculate_parameters() {
 		double stdv = pde->standard_dev();
 
+                // Design: this could be in a dedicated class (mesh, or grid)
 		x_max = log(S0) + 5 * stdv;
 		x_min = log(S0) - 5 * stdv;
 		dx = 10 * stdv / static_cast<double>(space_dim);
@@ -44,6 +45,7 @@ namespace Solve
     
     std::vector<double> BS_Solver::forward_coefficient(const double& temp, const size_t& i)
     {
+        // Implementation: double dx_2 = dx * dx is way faster
         double dx_2=pow(dx, 2.0);
         std::vector<double>a_coef(space_dim-2);
         
@@ -61,6 +63,14 @@ namespace Solve
 		//auto ptr = b_coef.begin();
 		//auto ftr = b_coef.back();
 
+                // Implementation: For efficiency, prefer comparing enum values than string
+                // Design: consider providing an hierarchy of classes for boundary conditions.
+                // The user may want to combine them (Dirichlet on left wing, Neuman on right wing for instances)
+                // Also your handling of Boundary conditions is way too complicated. Compute your tridiag system
+                // M X = B for i in [1, S - 2], then directly fill m(0, 0), m(0, 1), m(S-1, S-2), m(S-1, S-1) and
+                // X[0] and X[1] with boundary conditions. For Dirichlet this is simply:
+                // m(0, 0) = 1; m(0, 1) = 0; X[0] = previous_x[0];
+                // m(S-1, S-2) = 0; m(S-1, S-1) = 1; X[S-1] = previous_x[S-1]
 		if (l.compare("N") == 0) 
 		{
 			//present coeff + backward coeff because of neumann condition
@@ -142,6 +152,7 @@ namespace Solve
     
 	dauphine::matrix BS_Solver::transition_matrix(const double& temp, const size_t& i)
 	{
+                // Implementation: why rvalue references here?
 		std::vector<double>&& a = forward_coefficient(temp, i);
 		std::vector<double>&& b = present_coefficient(temp, i);
 		std::vector<double>&& c = backward_coefficient(temp, i);
@@ -173,6 +184,11 @@ namespace Solve
 
 
 		//creation of the left and right transition matrices
+                // Implementation: Why rvalue references here?
+                // Implementation: consider allocating your matrices
+                // and vectors once and for good in this main function,
+                // and pass them by references to other routines so they can
+                // fill them. This would avoid a lot of allocations and copies
 		dauphine::matrix&& M_lhs = transition_matrix(temp_lhs);
 		dauphine::matrix&& M_rhs = transition_matrix(temp_rhs);
 
@@ -379,9 +395,13 @@ namespace Solve
 			Crout_Algo_Resolution();
 		}
 		vega.resize(space_dim - 1);
+                // Implementation: memory leak, vega_pde1 is never deleted
 		BS_PDE* vega_pde1 = pde->vega_pde(0.01);
+                // Implementation: memory leak, vega_pde2 is never deleted
 		BS_PDE* vega_pde2 = pde->vega_pde(-0.01);
+                // Implementation: memory leak
 		BS_Solver* vega_solve1 = new Solve::BS_Solver(vega_pde1, theta, space_dim, time_dim, S0, maturity);
+                // Implementation: memory leak
 		BS_Solver* vega_solve2 = new Solve::BS_Solver(vega_pde2, theta, space_dim, time_dim, S0, maturity);
 		vega_solve1->Crout_Algo_Resolution();
 		vega_solve2->Crout_Algo_Resolution();

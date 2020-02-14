@@ -23,14 +23,25 @@
 namespace Solve
 {
 
+    // Design: the solver should be agnostic to the kind of options it is pricing
+    // Actually it should even be agnostic to the "financial" aspect of the problem,
+    // and simply solve the generalized heat equation
+    // a(x, t) d2f/dx2 + b(x, t) df/dx + c(x, t) f + d(x, t)
+    // You abstracted these coefficients in your PDE hierarchy, which is a good idea,
+    // rely on this abstraction: a single PDE_solver that accepts a basicPDE argument
+    // (which can actually be any kind or inheriting class, but the solver does not
+    // need to know).
     class BS_Solver
     {
 	public:
 		BS_Solver(BS_PDE* _pde, double _theta, std::size_t _space_dim, std::size_t _time_dim, double _S0, double _maturity);
+                // Design: where is the virtual destructor?
+                // Design: entity semantic
 		virtual void calculate_parameters();
 		virtual void set_initial_conditions();
 		virtual std::vector<double> boundary_increment(const double& t);
 
+                // implementation: consider passing builtin types by value
         virtual std::vector<double> forward_coefficient(const double& temp, const size_t& i = 0);
         virtual std::vector<double> present_coefficient(const double& temp, const size_t& i = 0);
         virtual std::vector<double> backward_coefficient(const double& temp, const size_t& i = 0);
@@ -63,6 +74,7 @@ namespace Solve
 		double dt;
 		double maturity;
 		std::size_t time_dim;
+                // Design: you're not on twitter, you can choose long and explicit names
 		std::string l;
 		std::string r;
 		std::vector<double> option_payoff;
@@ -94,6 +106,7 @@ namespace Solve
 		virtual std::vector<double> compute_theta();
 		virtual std::vector<double> get_option_payoff();
 	private:
+                // Design: why duplicating data members if you use inheritance?
 		Exo_PDE* pde;
 		double theta;
 		double S0;
