@@ -8,6 +8,12 @@
 
 //Two variable diffusion equation :
 
+// Design: good idea to abstract the coefficient in a hierarchy. This deserves
+// a better name (PDECOefficients? PDEModel?)
+// Design: entity semantic (virtual destructor and so on)
+// Design / implementation: consider having virtual methods tha fill
+// vector of coefficients instead of single values. This avoids virtual
+// dispatch in loops
 class basicPDE {
 public:
 	virtual double diff_coeff(double t, double x, double v) const = 0;
@@ -27,6 +33,7 @@ public:
 
 };
 
+// Design: why not inheriting from basicPDE?
 class BS_PDE {
 private:
 	VanillaOption* option;
@@ -51,6 +58,7 @@ public:
 	std::vector<double> init_cond(const std::vector<double>& X);
 	double standard_dev();
 
+        // Dangerous: who is reponsible for deleting it?
 	BS_PDE* vega_pde(const double& d);
 };
 

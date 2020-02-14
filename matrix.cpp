@@ -42,8 +42,8 @@ namespace dauphine
         return  m_data[i*m_nb_rows+j];
     }
 
-
-
+    // Implementation: this has not been declared in the header
+    // and therefore it cannot be used
     matrix operator+(double lhs, matrix& m)
     {
         for(std::size_t i = 0; i < m.nb_rows(); ++i)

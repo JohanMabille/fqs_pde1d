@@ -23,7 +23,12 @@ endif()
 set(PDE_SOLVER_SRCS
     closed_form.hpp
     closed_form.cpp
-    main.cpp)
+    main.cpp
+    matrix.cpp
+    Option.cpp
+    Payoff.cpp
+    pde.cpp
+    pde_solver.cpp)
 
 set(PDE_SOLVER_TARGET pde_solver)
 add_executable(${PDE_SOLVER_TARGET} ${PDE_SOLVER_SRCS})
